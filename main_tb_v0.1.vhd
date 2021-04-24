@@ -46,8 +46,9 @@ Component main
           -- 4-bit colour values output to DAC on Basys 3 board
           vgaRed, vgaBlue, vgaGreen: OUT STD_LOGIC_VECTOR(3 downto 0);
           CLK: IN STD_LOGIC;                -- 50 MHz clock
-          sw: IN unsigned(15 downto 8);     -- Switches for velocity input
-          btnC, btnU, btnL, btnR: IN STD_LOGIC;         -- Pushbuttons for go and reset respectively
+          sw: IN UNSIGNED(15 downto 8);     -- Switches for velocity input
+          btnC, btnU: IN STD_LOGIC;         -- Pushbuttons for go and reset respectively
+          btnL, btnR: IN STD_LOGIC;
           seg: OUT STD_LOGIC_VECTOR(6 downto 0); -- 7-seg cathodes 
           an: OUT STD_LOGIC_VECTOR(3 downto 0)   -- 7-seg anodes       
           );	
@@ -65,7 +66,7 @@ Component tb_vga_driver
 
 signal clk_in : std_logic := '0';
 signal clk_vga : std_logic := '0';
-signal sw_in : unsigned (15 downto 8) := (others => '0');
+signal sw_in : UNSIGNED (15 downto 8) := (others => '0');
 signal btnU_in, btnD_in, btnL_in, btnR_in, btnC_in  : STD_LOGIC := '0';
 signal seg_out : STD_LOGIC_VECTOR(6 downto 0); 
 signal dp_out : STD_LOGIC;
@@ -111,8 +112,7 @@ constant clk_vga_period  : time := 40 ns;
 
 begin
 
---sw_in <= "11110000"; -- change it as needed for your ball speed.
-sw_in <= "00001111"; 
+sw_in <= "00011111"; -- change it as needed for your ball speed.
 
 uut: main PORT MAP (
         sw => sw_in,
@@ -161,23 +161,27 @@ VGA_clk_process :process
 -- please add you test processes here..
 stim_proc: process
     begin
---    wait for 10 ms;
---    btnU_in <= '0';
---    wait for 10 ms;
     btnU_in <= '1';
-    wait for 1 ms;
+    wait for 10 ms;
     btnU_in <= '0';
-    wait for 1 ms;
-    
+    wait for 10 ms;
     btnC_in <= '1';
-    wait for 1ms;
-    
+    wait for 15 ms;
     btnC_in <= '0';
-        wait for 1ms;
-    btnL_in <= '0';
-        wait for 1ms;
-    btnL_in <= '0';
-    
+        wait for 15 ms;
+    btnR_in <= '1';
+        wait for 15 ms;
+    btnR_in <= '0';
+        wait for 15 ms;
+--    btnR_in <= '1';
+--        wait for 15 ms;
+--    btnR_in <= '0';
+--        wait for 15 ms;
+--    btnR_in <= '1';
+--        wait for 15 ms;
+--    btnR_in <= '0';
+--        wait for 15 ms;
+
     wait;
     end process;
     

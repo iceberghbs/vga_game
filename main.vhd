@@ -44,15 +44,12 @@ PORT(   Hsync, Vsync: OUT STD_LOGIC;      -- Horizontal and vertical sync pulses
 end main;
 
 architecture Behavioral of main is
-component pixel_generator
-  Port (
-        hcount, vcount : in unsigned(10 downto 0); 
-        blank : in std_logic;
-        btnU, btnC, btnL, btnR : in std_logic;
-        sw : in unsigned(15 downto 8);
-        vgaRed, vgaBlue, vgaGreen : out std_logic_vector(3 downto 0);
-        points_output : out std_logic_vector(6 downto 0)
-        );
+
+component frq_div
+    generic( n : integer);  -- frq_div_coefficient
+    Port (  clkin : in STD_LOGIC;
+            clkout : out std_logic
+            );
 end component;
 
 component vga_controller_640_60
@@ -68,49 +65,52 @@ port(
 );
 end component;
 
-component binary_2_four_digits
+component drawing 
+  Port (
+        hcount, vcount : in unsigned(10 downto 0); 
+        blank : in std_logic;
+        rst, btnC, btnL, btnR : in std_logic; 
+        sw : in unsigned(15 downto 8); 
+        vgaR, vgaB, vgaG : out std_logic_vector(3 downto 0);
+        scores : out std_logic_vector(13 downto 0)  -- upto 9999
+        );
+end component;
+
+component data2seg
   Port (clk : in std_logic;
-        binary_data : in std_logic_vector(6 downto 0);
+        data : in std_logic_vector(13 downto 0);  -- upto 9999
         seg : out std_logic_vector(6 downto 0);
         an : out std_logic_vector(3 downto 0) );
 end component;
 
-component frq_div
-    generic( n : integer);  -- frq_div_coefficient
-    Port (  clkin : in STD_LOGIC;
-            clkout : out std_logic
-            );
-end component;
+signal points : std_logic_vector(6 downto 0);
+signal scores : std_logic_vector(13 downto 0);
+signal blank : std_logic;
+signal clk25Mhz : std_logic;
 
 signal hcount : unsigned(10 downto 0);
 signal vcount : unsigned(10 downto 0);
-signal blank : std_logic;
-signal points : std_logic_vector(6 downto 0);
-signal clk_25Mhz : std_logic;
+
 
 begin
 
--- generate 25Mhz pixel clock
-uut_frq_div : frq_div
-    generic map(n => 4)
-    port map(clkin => CLK, clkout => clk_25Mhz);
+inst_frq_div : frq_div  -- f_clkin = 100Mhz
+generic map(n => 4)  -- 100Mhz/4 = 25Mhz
+port map(clkin => CLK, clkout => clk25Mhz);
 
--- clock: 25Mhz
 -- the points you got are displayed on the four_digits.
-uut_binary_2_four_digits: binary_2_four_digits
-    port map(clk=>clk_25Mhz, binary_data=>points, seg=>seg, an=>an);
+inst_vga_controller_640_60:vga_controller_640_60
+port map(rst=>btnU, pixel_clk=>clk25Mhz, HS=>Hsync, VS=>Vsync,
+hcount=>hcount, vcount=>vcount, blank=>blank);
 
--- clock: 25Mhz
-uut_vga_controller_640_60:vga_controller_640_60
-    port map(rst=>btnU, pixel_clk=>clk_25Mhz, HS=>Hsync, VS=>Vsync,
-                hcount=>hcount, vcount=>vcount, blank=>blank);
+inst_drawing : drawing
+port map(hcount=>hcount, vcount=>vcount, blank=>blank,
+        rst=>btnU, btnC=>btnC, btnL=>btnL, btnR=>btnR,
+        sw=>sw, vgaR=>vgaRed, vgaB=>vgaBlue, vgaG=>vgaGreen,
+        scores=>scores);
 
--- get control signal and drawing
-uut_pixel_generator:pixel_generator
-    port map(hcount=>hcount, vcount=>vcount, blank=>blank,
-                btnU=>btnU, btnC=>btnC, btnL=>btnL, btnR=>btnR,
-                sw=>sw, vgaRed=>vgaRed, vgaBlue=>vgaBlue, vgaGreen=>vgaGreen,
-                points_output=>points);
+inst_data2seg : data2seg
+port map(clk=>clk25Mhz, data=>scores, seg=>seg, an=>an);
 
 
 end Behavioral;
